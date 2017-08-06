@@ -2,10 +2,6 @@ extends layout.pug
 
 block content
   include _message.pug
-
-  script(src='https://code.jquery.com/jquery-3.1.1.min.js')
-  script(src='https://code.highcharts.com/stock/highstock.js')
-  script(src='https://code.highcharts.com/stock/modules/exporting.js')
   style.
     #container {
       height: 400px;
@@ -13,60 +9,126 @@ block content
       margin-top: 20px;
     }
 
+    .tags-wrapper {
+      background: #f7f7f7;
+      padding: 10px 20px;
+      margin: 22px 0px 0px;
+      width: 100%;
+    }
+
+    form {
+      position: relative;
+    }
+
+    form button {
+      position: absolute;
+      right: 0;
+      bottom: 23px;
+      width: 70px;
+      height: 30px;
+      background: #e4e4e4;
+      border: none;
+      text-transform: uppercase;
+      color: #5b5b5b;
+    }
+
+
+
   #container(style='height: 400px; min-width: 310px')
 
+  .tags-wrapper
+    ul#messages
+    form(action='')
+      input#m(autocomplete='off')
+      button add
+
+  script(src='https://code.highcharts.com/stock/highstock.js')
+  script(src='https://code.highcharts.com/stock/modules/exporting.js')
+
+  script(src='/socket.io/socket.io.js')
+  script(src='https://code.jquery.com/jquery-1.11.1.js')
+  script(src='socket.io/socket.io.js')
+
   script.
-    var seriesOptions = [];
-    var seriesCounter = 0;
-    var names = ['MSFT', 'AAPL', 'GOOG'];
+    function drawStocksChart(names) {
+      var seriesOptions = [];
+      var seriesCounter = 0;
 
-    function createChart() {
-      Highcharts.stockChart('container', {
-        rangeSelector: {
-          selected: 4
-        },
+      function createChart() {
+        Highcharts.stockChart('container', {
+          rangeSelector: {
+            selected: 4
+          },
 
-        yAxis: {
-          labels: {
-            formatter: function () {
-              return (this.value > 0 ? ' + ' : '') + this.value + '%';
+          yAxis: {
+            labels: {
+              formatter: function () {
+                return (this.value > 0 ? ' + ' : '') + this.value + '%';
+              }
+            },
+            plotLines: [{
+              value: 0,
+              width: 2,
+              color: 'silver'
+            }]
+          },
+
+          plotOptions: {
+            series: {
+              compare: 'percent',
+              showInNavigator: true
             }
           },
-          plotLines: [{
-            value: 0,
-            width: 2,
-            color: 'silver'
-          }]
-        },
 
-        plotOptions: {
-          series: {
-            compare: 'percent',
-            showInNavigator: true
+          tooltip: {
+            pointFormat: '<span style="color:{series.color}">{series.name}</span>: <b>{point.y}</b> ({point.change}%)<br/>',
+            valueDecimals: 2,
+            split: true
+          },
+
+          series: seriesOptions
+        });
+      }
+
+      $.each(names, function (i, name) {
+        var url = 'https://www.highcharts.com/samples/data/jsonp.php?filename=' + name.toLowerCase() + '-c.json&callback=?';
+
+        $.getJSON(url, function (data) {
+          seriesOptions[i] = {
+            name: name,
+            data: data
+          };
+          seriesCounter += 1;
+          if (seriesCounter === names.length) {
+            createChart();
           }
-        },
-
-        tooltip: {
-          pointFormat: '<span style="color:{series.color}">{series.name}</span>: <b>{point.y}</b> ({point.change}%)<br/>',
-          valueDecimals: 2,
-          split: true
-        },
-
-        series: seriesOptions
+        });
       });
     }
 
-    $.each(names, function (i, name) {
-      var url = 'https://www.highcharts.com/samples/data/jsonp.php?filename=' + name.toLowerCase() + '-c.json&callback=?';
+  script.
+    var socket = io();
 
-      $.getJSON(url, function (data) {
-        seriesOptions[i] = {
-          name: name,
-          data: data
-        };
-        seriesCounter += 1;
-        if (seriesCounter === names.length) {
-          createChart();
-        }
-      });
-    });
+    $(initSocket);
+
+    function initSocket() {
+      $('form').submit(emitChanges);
+      socket.on('stock change', renderStockName);
+    }
+
+    function emitChanges() {
+      socket.emit('stock change', $('#m').val());
+      $('#m').val('');
+      return false;
+    }
+
+    function renderStockName(names) {
+      drawStocksChart(names);
+
+      for(var name of names) {
+        $('#messages')
+          .append(
+            $('<div class="chip">' + name + '<i class="close material-icons">close</i></div>')
+          );
+      }
+    }

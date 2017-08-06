@@ -1,13 +1,30 @@
 'use strict';
 
 var express = require('express');
+var http = require('http');
+var app = express();
+var server = http.createServer(app);
+var io = require('socket.io').listen(server);
+
 var routes = require('./app/routes/index.js');
 var mongoose = require('mongoose');
 var passport = require('passport');
 var session = require('express-session');
 var bodyParser = require('body-parser');
 
-var app = express();
+io.on('connection', function(socket) {
+  var names = ['MSFT', 'AAPL', 'GOOG'];
+  io.emit('stock change', names);
+
+  socket.on('disconnect', function () {
+    console.log('A user is disconnected');
+  });
+
+  socket.on('stock change', function(stocks) {
+    io.emit('stock change', stocks);
+  });
+});
+
 require('dotenv').load();
 require('./app/config/passport')(passport);
 app.set('views', __dirname + '/public/views');
@@ -38,6 +55,6 @@ app.use(bodyParser.urlencoded({
 routes(app, passport);
 
 var port = process.env.PORT || 8080;
-app.listen(port,  function () {
+server.listen(port,  function () {
   console.log('Node.js listening on port ' + port + '...');
 });
