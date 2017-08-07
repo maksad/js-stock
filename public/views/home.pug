@@ -37,7 +37,7 @@ block content
   .tags-wrapper
     ul#names
     form(action='')
-      input#m(autocomplete='off')
+      input#stock(autocomplete='off')
       button add
 
   script(src='https://code.highcharts.com/stock/highstock.js')
@@ -111,24 +111,31 @@ block content
 
     function initSocket() {
       window.names = [];
-      $('form').submit(emitChanges);
+      $('form').submit(onFormSubmitEmitChanges);
       socket.on('stock change', renderStockName);
     }
 
-    function emitChanges() {
-      socket.emit('stock change', $('#m').val());
-      $('#m').val('');
-      return false;
+    function onFormSubmitEmitChanges() {
+      var stock = $('#stock').val();
+      stock = stock.toUpperCase();
+
+      if (!window.names.includes(stock)) {
+        var newNames = window.names.slice();
+        newNames.push(stock);
+        socket.emit('stock change', newNames);
+        $('#stock').val('');
+        return false;
+      }
     }
 
     function renderStockName(names) {
-      sortedNames = names ? names.sort() : []
-      windowNames = window.names.sort()
+      sortedNames = names ? names.sort() : [];
+      windowNames = window.names.sort();
       if (sortedNames.toString() != windowNames.toString()) {
+        window.names = names;
         drawStocksChart(names);
+        addNamesToUI(names);
       }
-      window.names = names;
-      addNamesToUI(names);
     }
 
     function addNamesToUI(names) {
