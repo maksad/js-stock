@@ -32,12 +32,10 @@ block content
       color: #5b5b5b;
     }
 
-
-
   #container(style='height: 400px; min-width: 310px')
 
   .tags-wrapper
-    ul#messages
+    ul#names
     form(action='')
       input#m(autocomplete='off')
       button add
@@ -112,6 +110,7 @@ block content
     $(initSocket);
 
     function initSocket() {
+      window.names = [];
       $('form').submit(emitChanges);
       socket.on('stock change', renderStockName);
     }
@@ -123,10 +122,20 @@ block content
     }
 
     function renderStockName(names) {
-      drawStocksChart(names);
+      sortedNames = names ? names.sort() : []
+      windowNames = window.names.sort()
+      if (sortedNames.toString() != windowNames.toString()) {
+        drawStocksChart(names);
+      }
+      window.names = names;
+      addNamesToUI(names);
+    }
+
+    function addNamesToUI(names) {
+      $('#names .chip').remove();
 
       for(var name of names) {
-        $('#messages')
+        $('#names')
           .append(
             $('<div class="chip">' + name + '<i class="close material-icons">close</i></div>')
           );
