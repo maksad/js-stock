@@ -1,5 +1,7 @@
 'use strict';
 
+var path = process.cwd();
+
 var express = require('express');
 var http = require('http');
 var app = express();
@@ -12,18 +14,10 @@ var passport = require('passport');
 var session = require('express-session');
 var bodyParser = require('body-parser');
 
-io.on('connection', function(socket) {
-  var names = ['MSFT', 'AAPL', 'GOOG'];
-  io.emit('stock change', names);
+var SocketHandler = require(path + '/app/controllers/socketHandler.js');
+var socketHandler = new SocketHandler(io);
 
-  socket.on('disconnect', function () {
-    console.log('A user is disconnected');
-  });
-
-  socket.on('stock change', function(stocks) {
-    io.emit('stock change', stocks);
-  });
-});
+io.on('connection', socketHandler.handle);
 
 require('dotenv').load();
 require('./app/config/passport')(passport);
