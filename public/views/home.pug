@@ -85,9 +85,20 @@ block content
       $('#names .chip').remove();
 
       for(var name of names) {
-        $('#names')
-          .append(
-            $('<div class="chip">' + name + '<i class="close material-icons">close</i></div>')
-          );
+        var closeIconElem = $(
+          '<i class="close material-icons" id="' + name + '">close</i>'
+        );
+        closeIconElem.on('click', removeStockFromTheList);
+
+        var stockElem = $('<div class="chip">' + name + '</div>');
+        stockElem.append(closeIconElem);
+        $('#names').append(stockElem);
       }
+    }
+
+    function removeStockFromTheList(event) {
+      var stockName = event.target.getAttribute('id');
+      var names = window.names.slice();
+      names = names.filter(name => name !== stockName);
+      socket.emit('stock change', names);
     }
